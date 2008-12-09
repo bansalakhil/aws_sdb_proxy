@@ -24,9 +24,7 @@ module AwsSdbProxy
     exit 1
   end
 
-  SDB_SERVICE = AwsSdb::Service.new(Logger.new(nil),
-                                    CONFIG['aws_access_key_id'],
-                                    CONFIG['aws_secret_access_key'])
+   SDB_SERVICE = AwsSdb::Service.new(:logger => Logger.new(nil), :access_key_id => CONFIG['aws_access_key_id'], :secret_access_key => CONFIG['aws_secret_access_key'])
 
   # This is only needed for aws-sdb 0.1.1, but will do no harm when
   # used with 0.1.2 (and probably beyond).
