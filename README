@@ -1,0 +1,72 @@
+= AwsSdbProxy
+
+AwsSdbProxy is a HTTP proxy server bridging ActiveResource calls from Rails
+to Amazon's SimpleDB Web Service allowing SimpleDB to be used as a storage
+backend for Rails applications.
+
+The proxy will listen on a configurable port for web service calls initiated by
+ActiveResource models and forward the requests to SimpleDB using the aws-sdb
+Gem by Tim Dysinger.
+
+== Installation
+
+Install the AwsSdbProxy plugin from Rubyforge[http://www.rubyforge.org] as
+usual:
+
+ script/plugin install http://rug-b.rubyforge.org/svn/aws_sdb_proxy
+
+== Setup and Usage
+
+1. Enter your Amazon Web Service credentials in the config/aws_sdb_proxy.yml
+   config file (optionally configure server ports and a salt used to hash
+   primary keys from the record content).
+   
+2. Check your available SimpleDB domains with <tt>rake aws_sdb:list_domains</tt> and
+   create a new one with <tt>rake aws_sdb:create_domain DOMAIN=my_new_domain</tt>
+   if necessary.
+   
+3. Start the AwsSdbProxy server with <tt>rake aws_sdb:start_proxy_in_foreground</tt>.
+   (Once things are configured correctly you can also use
+   <tt>rake aws_sdb:start_proxy</tt> to start the server as a background daemon.)
+
+4. Connect any ActiveResource model to your SimpleDB domain, e.g.
+
+    class Post < ActiveResource::Base
+      self.site = "http://localhost:8888" # AwsSdbProxy host + port
+      self.prefix = "/my_new_domain/"     # use your SimpleDB domain enclosed in /s
+    end
+
+5. Use your model just like any ActiveResource model in your application or try
+   it in <tt>script/console</tt>, e.g.
+   
+    >> p = Post.create(:title => 'My first SimpleDB post')
+    => #<Post:0x198ceec @prefix_options={}, @attributes={"updated_at"=>
+    Sun Jan 20 00:42:43 UTC 2008, "title"=>"My first SimpleDB post",
+    "id"=>1081408...01005954, "created_at"=>Sun Jan 20 00:42:43 UTC 2008}>
+
+    >> p.body = 'Content is king'
+    => "Content is king"
+    
+    >> p.save
+    => true
+
+    >> Post.find(:first, :params => { :title => 'My first SimpleDB post' })
+    => #<Post:0x18efef8 @prefix_options={}, @attributes={"updated_at"=>
+    Sun Jan 20 00:45:28 UTC 2008, "title"=>"My first SimpleDB post",
+    "body"=>"Content is king", "id"=>1081408...01005954, "created_at"=>
+    Sun Jan 20 00:42:43 UTC 2008}>
+
+
+== Background
+    
+As you may have noticed SimpleDB (and thus AwsSdbProxy) do not use any
+pre-defined schema. Every record can potentially have different attributes.
+SimpleDB also has no data types associated with it's attributes, all data will
+be stored as strings.
+
+AwsSdbProxy adds a special <tt>_resource</tt> attribute to distinguish diffent models
+within the same SimpleDB domain and also adds and handles the usual
+<tt>created_at</tt> and <tt>updated_at</tt> attributes. Record ids are generated using
+a SHA512 hash function to make key collisions extremely unlikely.
+
+Copyright (c) 2008 mailto:martin.rehfeld@glnetworks.de, released under the MIT license
